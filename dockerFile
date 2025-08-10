@@ -1,0 +1,32 @@
+# Utilise une image PHP officielle avec Apache
+FROM php:8.2-apache
+
+# Installe les dépendances PHP nécessaires
+RUN apt-get update && apt-get install -y \
+    libzip-dev \
+    zip \
+    unzip \
+    && docker-php-ext-install zip pdo pdo_mysql
+
+# Active mod_rewrite pour Laravel
+RUN a2enmod rewrite
+
+# Copie le code dans le conteneur
+COPY . /var/www/html
+
+# Copie le fichier de configuration Apache pour Laravel (optionnel)
+COPY ./apache.conf /etc/apache2/sites-available/000-default.conf
+
+# Installe Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Installe les dépendances PHP de Laravel
+RUN composer install --no-dev --optimize-autoloader
+
+# Change les permissions
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Expose le port 80
+EXPOSE 80
+
+CMD ["apache2-foreground"]
